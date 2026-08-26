@@ -12,6 +12,16 @@ class Settings:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def renders_dir(self) -> Path:
+        path = self.data_dir / "renders"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def reference_cache_dir(self) -> Path:
+        path = self.data_dir / "reference_cache"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
 
 def get_settings() -> Settings:
     data_dir = Path(os.environ.get("LANDSCAPE_DATA_DIR", "./data"))

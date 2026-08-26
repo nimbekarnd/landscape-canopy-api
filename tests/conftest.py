@@ -1,10 +1,19 @@
+import io
+
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from landscape_api.main import app
 from landscape_api.db import Base, get_db
+
+
+def make_test_jpeg_bytes() -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGB", (50, 50), color="green").save(buf, format="JPEG")
+    return buf.getvalue()
 
 
 @pytest.fixture()
