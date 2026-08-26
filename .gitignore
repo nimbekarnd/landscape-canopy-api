@@ -41,6 +41,10 @@ htmlcov/
 # Runtime data (uploaded photos, renders, reference cache)
 data/
 
+# Secrets
+.env
+.env.*
+
 # OS
 .DS_Store
 Thumbs.db
