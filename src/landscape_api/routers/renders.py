@@ -11,7 +11,7 @@ from landscape_api.db import get_db
 from landscape_api.models import Project, Render, Season
 from landscape_api.schemas import RenderOut
 from landscape_api.services.generation import GenerationOrchestrator
-from landscape_api.services.image_edit_client import HttpImageEditClient
+from landscape_api.services.image_edit_client import GeminiImageEditClient
 from landscape_api.services.reference_images import CachingReferenceImageService
 
 router = APIRouter(tags=["renders"])
@@ -36,9 +36,9 @@ def get_orchestrator() -> GenerationOrchestrator:
         provider=NullReferenceProvider(),
         cache_dir=settings.reference_cache_dir(),
     )
-    image_edit_client = HttpImageEditClient(
-        api_url=os.environ.get("IMAGE_EDIT_API_URL", ""),
+    image_edit_client = GeminiImageEditClient(
         api_key=os.environ.get("IMAGE_EDIT_API_KEY", ""),
+        model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image"),
     )
     return GenerationOrchestrator(
         reference_service=reference_service,

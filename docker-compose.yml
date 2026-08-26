@@ -6,10 +6,11 @@ services:
     volumes:
       - landscape_data:/data
     environment:
-      # Set these to enable real image generation; without them the API
-      # runs fully otherwise, and render requests fail cleanly per season.
-      IMAGE_EDIT_API_URL: ${IMAGE_EDIT_API_URL:-}
+      # Set IMAGE_EDIT_API_KEY (a Google Gemini API key) to enable real
+      # image generation; without it the API runs fully otherwise, and
+      # render requests fail cleanly per season instead of generating.
       IMAGE_EDIT_API_KEY: ${IMAGE_EDIT_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-image}
     restart: unless-stopped
 
 volumes:
