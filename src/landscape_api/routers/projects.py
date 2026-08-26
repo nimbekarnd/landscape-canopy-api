@@ -1,6 +1,7 @@
 import io
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
@@ -46,3 +47,19 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.get("/clients/{client_id}/projects", response_model=list[ProjectOut])
+def list_projects_for_client(client_id: str, db: Session = Depends(get_db)):
+    client_row = db.get(Client, client_id)
+    if client_row is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return client_row.projects
+
+
+@router.get("/projects/{project_id}/photo")
+def get_project_photo(project_id: str, db: Session = Depends(get_db)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return FileResponse(project.photo_path, media_type="image/jpeg")

@@ -212,6 +212,43 @@ def test_each_season_is_committed_independently(client, tmp_path):
     app.dependency_overrides.pop(get_orchestrator, None)
 
 
+def test_get_render_image_returns_bytes_for_succeeded_render(client, tmp_path):
+    app.dependency_overrides[get_orchestrator] = lambda: _make_real_orchestrator(tmp_path)
+
+    project_id = _make_project_and_zone(client)
+    resp = client.post(f"/projects/{project_id}/renders", json={"seasons": ["fall"]})
+    render_id = resp.json()[0]["id"]
+
+    image_resp = client.get(f"/renders/{render_id}/image")
+    assert image_resp.status_code == 200
+    assert image_resp.headers["content-type"] == "image/jpeg"
+    assert image_resp.content == b"rendered-bytes"
+
+    app.dependency_overrides.pop(get_orchestrator, None)
+
+
+def test_get_render_image_404_for_failed_render(client, tmp_path):
+    app.dependency_overrides[get_orchestrator] = lambda: _make_real_orchestrator(tmp_path)
+
+    project_id = _make_project_and_zone(client)
+    photo_path = Path(client.get(f"/projects/{project_id}").json()["photo_path"])
+    photo_path.write_bytes(b"corrupted-not-an-image")
+
+    resp = client.post(f"/projects/{project_id}/renders", json={"seasons": ["fall"]})
+    render_id = resp.json()[0]["id"]
+    assert resp.json()[0]["status"] == "failed"
+
+    image_resp = client.get(f"/renders/{render_id}/image")
+    assert image_resp.status_code == 404
+
+    app.dependency_overrides.pop(get_orchestrator, None)
+
+
+def test_get_render_image_404_for_missing_render(client):
+    resp = client.get("/renders/does-not-exist/image")
+    assert resp.status_code == 404
+
+
 def test_get_orchestrator_is_cached_per_process():
     """I2: a new httpx.Client must not be built per render request."""
     close_orchestrator()  # start from a clean cache

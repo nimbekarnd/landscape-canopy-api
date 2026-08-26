@@ -2,6 +2,7 @@ import os
 from functools import lru_cache
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -127,3 +128,11 @@ def list_renders(project_id: str, db: Session = Depends(get_db)):
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project.renders
+
+
+@router.get("/renders/{render_id}/image")
+def get_render_image(render_id: str, db: Session = Depends(get_db)):
+    render = db.get(Render, render_id)
+    if render is None or render.status != "succeeded" or not render.image_path:
+        raise HTTPException(status_code=404, detail="Render image not available")
+    return FileResponse(render.image_path, media_type="image/jpeg")

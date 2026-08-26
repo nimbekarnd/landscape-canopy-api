@@ -100,3 +100,104 @@ def test_create_zone_with_invalid_kind_returns_422(client):
         },
     )
     assert resp.status_code == 422
+
+
+def test_update_zone_replaces_geometry_kind_and_palette(client):
+    project_id = _make_project(client)
+    maple_id = client.post("/species", json={"common_name": "Red Maple"}).json()["id"]
+    oak_id = client.post("/species", json={"common_name": "White Oak"}).json()["id"]
+
+    zone_id = client.post(
+        f"/projects/{project_id}/zones",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [{"species_id": maple_id, "proportion": 100.0}],
+        },
+    ).json()["id"]
+
+    resp = client.patch(
+        f"/projects/{project_id}/zones/{zone_id}",
+        json={
+            "kind": "pin",
+            "geometry": {"point": [5, 5]},
+            "palette_entries": [
+                {"species_id": maple_id, "proportion": 40.0},
+                {"species_id": oak_id, "proportion": 60.0},
+            ],
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["kind"] == "pin"
+    assert body["geometry"] == {"point": [5, 5]}
+    assert {(e["species_id"], e["proportion"]) for e in body["palette_entries"]} == {
+        (maple_id, 40.0),
+        (oak_id, 60.0),
+    }
+
+    # And the replacement is what a subsequent fetch sees too.
+    listed = client.get(f"/projects/{project_id}/zones").json()
+    assert len(listed) == 1
+    assert len(listed[0]["palette_entries"]) == 2
+
+
+def test_update_zone_with_invalid_proportions_returns_422(client):
+    project_id = _make_project(client)
+    species_id = client.post("/species", json={"common_name": "Red Maple"}).json()["id"]
+    zone_id = client.post(
+        f"/projects/{project_id}/zones",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [{"species_id": species_id, "proportion": 100.0}],
+        },
+    ).json()["id"]
+
+    resp = client.patch(
+        f"/projects/{project_id}/zones/{zone_id}",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [{"species_id": species_id, "proportion": 40.0}],
+        },
+    )
+    assert resp.status_code == 422
+    assert "sum to 100" in resp.json()["detail"]
+
+
+def test_update_zone_returns_404_for_missing_zone(client):
+    project_id = _make_project(client)
+    resp = client.patch(
+        f"/projects/{project_id}/zones/does-not-exist",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [],
+        },
+    )
+    assert resp.status_code == 404
+
+
+def test_delete_zone_removes_it(client):
+    project_id = _make_project(client)
+    species_id = client.post("/species", json={"common_name": "Red Maple"}).json()["id"]
+    zone_id = client.post(
+        f"/projects/{project_id}/zones",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [{"species_id": species_id, "proportion": 100.0}],
+        },
+    ).json()["id"]
+
+    resp = client.delete(f"/projects/{project_id}/zones/{zone_id}")
+    assert resp.status_code == 204
+
+    assert client.get(f"/projects/{project_id}/zones").json() == []
+
+
+def test_delete_zone_returns_404_for_missing_zone(client):
+    project_id = _make_project(client)
+    resp = client.delete(f"/projects/{project_id}/zones/does-not-exist")
+    assert resp.status_code == 404

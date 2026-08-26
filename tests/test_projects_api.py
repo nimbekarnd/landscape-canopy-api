@@ -21,6 +21,26 @@ def test_create_project_with_photo_upload(client):
     assert get_resp.status_code == 200
 
 
+def test_get_project_photo_returns_image_bytes(client):
+    client_id = client.post("/clients", json={"name": "Agriformers Pilot"}).json()["id"]
+    photo_bytes = make_test_jpeg_bytes()
+    project_resp = client.post(
+        f"/clients/{client_id}/projects",
+        files={"photo": ("yard.jpg", io.BytesIO(photo_bytes), "image/jpeg")},
+    )
+    project_id = project_resp.json()["id"]
+
+    resp = client.get(f"/projects/{project_id}/photo")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "image/jpeg"
+    assert resp.content == photo_bytes
+
+
+def test_get_project_photo_404_for_missing_project(client):
+    resp = client.get("/projects/does-not-exist/photo")
+    assert resp.status_code == 404
+
+
 def test_create_project_with_non_image_upload_returns_422(client):
     """I5: uploading arbitrary bytes must be rejected, not written as a .jpg."""
     client_resp = client.post("/clients", json={"name": "Agriformers Pilot"})
