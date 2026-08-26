@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -39,7 +40,7 @@ class PaletteEntryOut(BaseModel):
 
 
 class ZoneIn(BaseModel):
-    kind: str
+    kind: Literal["region", "pin"]
     geometry: dict
     palette_entries: list[PaletteEntryIn]
 
@@ -47,7 +48,7 @@ class ZoneIn(BaseModel):
 class ZoneOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
-    kind: str
+    kind: Literal["region", "pin"]
     geometry: dict
     palette_entries: list[PaletteEntryOut]
 
@@ -70,4 +71,5 @@ class RenderOut(BaseModel):
     image_path: str | None
     error: str | None
     missing_species: list[str]
+    zone_snapshot: dict
     created_at: datetime

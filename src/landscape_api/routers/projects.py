@@ -1,4 +1,7 @@
+import io
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.orm import Session
 
 from landscape_api.config import get_settings
@@ -15,13 +18,21 @@ def create_project(client_id: str, photo: UploadFile, db: Session = Depends(get_
     if client_row is None:
         raise HTTPException(status_code=404, detail="Client not found")
 
+    photo_bytes = photo.file.read()
+    try:
+        Image.open(io.BytesIO(photo_bytes)).verify()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422, detail="Uploaded file is not a valid image."
+        ) from exc
+
     project = Project(client_id=client_id, photo_path="")
     db.add(project)
     db.flush()  # assign project.id before writing the file
 
     settings = get_settings()
     dest = settings.photos_dir() / f"{project.id}.jpg"
-    dest.write_bytes(photo.file.read())
+    dest.write_bytes(photo_bytes)
     project.photo_path = str(dest)
 
     db.commit()
