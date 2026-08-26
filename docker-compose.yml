@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - landscape_data:/data
+    environment:
+      # Set these to enable real image generation; without them the API
+      # runs fully otherwise, and render requests fail cleanly per season.
+      IMAGE_EDIT_API_URL: ${IMAGE_EDIT_API_URL:-}
+      IMAGE_EDIT_API_KEY: ${IMAGE_EDIT_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  landscape_data:

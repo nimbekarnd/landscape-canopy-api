@@ -4,7 +4,19 @@ Backend API for the landscape plant rendering tool. See
 `docs/superpowers/specs/2026-08-25-landscape-plant-rendering-design.md`
 for the product design this implements.
 
-## Setup
+## Quickest setup: Docker
+
+If you have Docker installed, no Python setup is needed at all:
+
+    docker compose up --build
+
+Then open http://127.0.0.1:8000/ui/ or http://127.0.0.1:8000/docs.
+Data persists in a Docker volume across restarts. To enable real image
+generation, set `IMAGE_EDIT_API_URL` and `IMAGE_EDIT_API_KEY` in your
+shell (or a `.env` file next to `docker-compose.yml`) before running
+`docker compose up`.
+
+## Setup (without Docker)
 
 Requires Python 3.11+.
 
