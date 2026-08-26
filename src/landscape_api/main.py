@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 
-from landscape_api.routers import species, clients
+from landscape_api.routers import species, clients, projects
 
 app = FastAPI(title="Landscape Canopy API")
 app.include_router(species.router)
 app.include_router(clients.router)
+app.include_router(projects.router)
 
 
 @app.get("/health")

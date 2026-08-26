@@ -7,6 +7,11 @@ import os
 class Settings:
     data_dir: Path
 
+    def photos_dir(self) -> Path:
+        path = self.data_dir / "photos"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
 
 def get_settings() -> Settings:
     data_dir = Path(os.environ.get("LANDSCAPE_DATA_DIR", "./data"))
