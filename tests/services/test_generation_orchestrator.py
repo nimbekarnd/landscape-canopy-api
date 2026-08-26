@@ -140,3 +140,132 @@ def test_fails_after_retry_exhausted(tmp_path):
     assert outcome.image_path is None
     assert failing_client.calls == 2
     assert "boom" in outcome.error
+
+
+class _RaisesUnexpectedErrorClient:
+    """Raises something that is NOT an ImageEditError."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def generate(self, request):
+        self.calls += 1
+        raise ValueError("unexpected non-ImageEditError blow-up")
+
+
+def test_unreadable_photo_returns_failed_outcome_instead_of_raising(tmp_path):
+    """C2: build_mask_overlay raising must degrade to a failed outcome."""
+    photo_path = tmp_path / "corrupt.jpg"
+    photo_path.write_bytes(b"not-actually-an-image")
+    project = _FakeProject(photo_path=str(photo_path))
+    zones = [
+        _FakeZone(
+            "region",
+            {"points": [[0, 0], [10, 0], [10, 10]]},
+            [_FakeEntry("Red Maple", 100.0)],
+        )
+    ]
+
+    orchestrator = GenerationOrchestrator(
+        reference_service=_FakeReferenceService(has_image=True),
+        image_edit_client=_AlwaysSucceedsClient(),
+        renders_dir=tmp_path / "renders",
+    )
+
+    outcome = orchestrator.generate_for_season(project, zones, Season.FALL)
+
+    assert outcome.status == "failed"
+    assert outcome.image_path is None
+    assert outcome.error
+
+
+def test_missing_photo_file_returns_failed_outcome(tmp_path):
+    """C2: a FileNotFoundError from the photo path must not propagate."""
+    project = _FakeProject(photo_path=str(tmp_path / "nope.jpg"))
+    zones = [
+        _FakeZone(
+            "region",
+            {"points": [[0, 0], [10, 0], [10, 10]]},
+            [_FakeEntry("Red Maple", 100.0)],
+        )
+    ]
+
+    orchestrator = GenerationOrchestrator(
+        reference_service=_FakeReferenceService(has_image=True),
+        image_edit_client=_AlwaysSucceedsClient(),
+        renders_dir=tmp_path / "renders",
+    )
+
+    outcome = orchestrator.generate_for_season(project, zones, Season.SPRING)
+
+    assert outcome.status == "failed"
+    assert outcome.image_path is None
+
+
+def test_malformed_zone_geometry_returns_failed_outcome(tmp_path):
+    """C2: a KeyError from bad geometry must not propagate."""
+    photo_path = _make_project_photo(tmp_path)
+    project = _FakeProject(photo_path=str(photo_path))
+    zones = [_FakeZone("region", {"wrong_key": []}, [_FakeEntry("Red Maple", 100.0)])]
+
+    orchestrator = GenerationOrchestrator(
+        reference_service=_FakeReferenceService(has_image=True),
+        image_edit_client=_AlwaysSucceedsClient(),
+        renders_dir=tmp_path / "renders",
+    )
+
+    outcome = orchestrator.generate_for_season(project, zones, Season.WINTER)
+
+    assert outcome.status == "failed"
+    assert outcome.missing_species == []
+
+
+def test_non_image_edit_error_from_client_returns_failed_outcome(tmp_path):
+    """C2: only ImageEditError is retried; other client errors still fail cleanly."""
+    photo_path = _make_project_photo(tmp_path)
+    project = _FakeProject(photo_path=str(photo_path))
+    zones = [
+        _FakeZone(
+            "region",
+            {"points": [[0, 0], [10, 0], [10, 10]]},
+            [_FakeEntry("Red Maple", 100.0)],
+        )
+    ]
+    failing_client = _RaisesUnexpectedErrorClient()
+
+    orchestrator = GenerationOrchestrator(
+        reference_service=_FakeReferenceService(has_image=True),
+        image_edit_client=failing_client,
+        renders_dir=tmp_path / "renders",
+    )
+
+    outcome = orchestrator.generate_for_season(project, zones, Season.SUMMER)
+
+    assert outcome.status == "failed"
+    assert failing_client.calls == 1  # not retried
+    assert "unexpected non-ImageEditError" in outcome.error
+
+
+def test_close_closes_underlying_client(tmp_path):
+    """I2: the orchestrator can release its client's resources."""
+
+    class _ClosableClient:
+        def __init__(self):
+            self.closed = False
+
+        def generate(self, request):  # pragma: no cover - not exercised here
+            raise AssertionError("not called")
+
+        def close(self):
+            self.closed = True
+
+    closable = _ClosableClient()
+    orchestrator = GenerationOrchestrator(
+        reference_service=_FakeReferenceService(has_image=True),
+        image_edit_client=closable,
+        renders_dir=tmp_path / "renders",
+    )
+
+    orchestrator.close()
+
+    assert closable.closed is True
