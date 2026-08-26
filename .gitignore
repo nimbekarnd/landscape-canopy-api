@@ -38,6 +38,9 @@ ENV/
 .coverage
 htmlcov/
 
+# Runtime data (uploaded photos, renders, reference cache)
+data/
+
 # OS
 .DS_Store
 Thumbs.db

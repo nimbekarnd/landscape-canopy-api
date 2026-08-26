@@ -16,6 +16,11 @@ def make_test_jpeg_bytes() -> bytes:
     return buf.getvalue()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_data_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("LANDSCAPE_DATA_DIR", str(tmp_path / "data"))
+
+
 @pytest.fixture()
 def db_session():
     engine = create_engine(
