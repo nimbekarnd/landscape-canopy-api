@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Landscape Canopy — test harness</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin-top: 2.5rem; border-bottom: 1px solid #ddd; padding-bottom: .25rem; }
+  fieldset { border: 1px solid #ddd; border-radius: 6px; margin-bottom: 1rem; }
+  label { display: inline-block; min-width: 110px; }
+  input, select { margin: .25rem 0; }
+  button { cursor: pointer; }
+  .row { margin: .4rem 0; }
+  .muted { color: #777; font-size: .85rem; }
+  .error { color: #b00020; }
+  .list-item { border: 1px solid #eee; border-radius: 6px; padding: .5rem; margin-bottom: .5rem; }
+  .thumb { max-width: 160px; max-height: 120px; display: block; margin: .25rem 0; border: 1px solid #ccc; }
+  #zoneCanvasWrap { position: relative; display: inline-block; }
+  #zoneCanvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+  #zonePhoto { display: block; max-width: 600px; }
+  .palette-row { display: flex; gap: .5rem; align-items: center; margin: .25rem 0; }
+  .mode-btn.active { outline: 2px solid #2a6; }
+</style>
+</head>
+<body>
+<h1>Landscape Canopy — test harness</h1>
+<p class="muted">A bare-bones page for exercising the API by hand. Not the designer UX from the spec — just enough to upload a photo, draw zones, and see renders.</p>
+
+<h2>1. Client</h2>
+<fieldset>
+  <div class="row">
+    <label>Name</label>
+    <input id="clientName" placeholder="Agriformers Pilot" />
+    <button onclick="createClient()">Create client</button>
+  </div>
+  <div class="row">
+    <label>Active client</label>
+    <select id="clientSelect" onchange="onClientSelected()"></select>
+    <button onclick="loadClients()">Refresh</button>
+  </div>
+  <div id="clientError" class="error"></div>
+</fieldset>
+
+<h2>2. Species catalog</h2>
+<fieldset>
+  <div class="row">
+    <label>Common name</label>
+    <input id="speciesCommonName" placeholder="Red Maple" />
+    <label>Scientific name</label>
+    <input id="speciesScientificName" placeholder="Acer rubrum (optional)" />
+    <button onclick="createSpecies()">Add species</button>
+  </div>
+  <div id="speciesList" class="muted"></div>
+</fieldset>
+
+<h2>3. Projects (for the active client)</h2>
+<fieldset>
+  <div class="row">
+    <label>Yard photo</label>
+    <input type="file" id="photoInput" accept="image/*" />
+    <button onclick="createProject()">Create project</button>
+  </div>
+  <div id="projectError" class="error"></div>
+  <div class="row">
+    <label>Active project</label>
+    <select id="projectSelect" onchange="onProjectSelected()"></select>
+  </div>
+  <div id="projectList"></div>
+</fieldset>
+
+<h2>4. Zones (for the active project)</h2>
+<fieldset>
+  <div id="zoneEditorHint" class="muted">Click "New zone" to draw on the photo below.</div>
+  <div class="row">
+    <button onclick="startNewZone()">New zone (region)</button>
+    <button onclick="startNewZone('pin')">New zone (pin)</button>
+    <button id="finishRegionBtn" onclick="finishRegion()" style="display:none">Finish region (need 3+ points)</button>
+    <button onclick="cancelZoneDraw()">Cancel</button>
+  </div>
+  <div id="zoneCanvasWrap">
+    <img id="zonePhoto" />
+    <canvas id="zoneCanvas"></canvas>
+  </div>
+
+  <div id="paletteBuilder" style="display:none">
+    <h3 style="font-size:1rem">Palette for this zone (proportions must sum to 100)</h3>
+    <div id="paletteRows"></div>
+    <div class="row">
+      <select id="paletteSpeciesSelect"></select>
+      <input type="number" id="paletteProportion" placeholder="proportion %" style="width:100px" />
+      <button onclick="addPaletteRow()">Add species</button>
+    </div>
+    <div class="row">
+      <button onclick="saveZone()">Save zone</button>
+      <span id="zoneError" class="error"></span>
+    </div>
+  </div>
+
+  <h3 style="font-size:1rem">Existing zones</h3>
+  <div id="zoneList"></div>
+</fieldset>
+
+<h2>5. Renders (for the active project)</h2>
+<fieldset>
+  <div class="row">
+    <label><input type="checkbox" class="season-cb" value="spring" checked> spring</label>
+    <label><input type="checkbox" class="season-cb" value="summer" checked> summer</label>
+    <label><input type="checkbox" class="season-cb" value="fall" checked> fall</label>
+    <label><input type="checkbox" class="season-cb" value="winter" checked> winter</label>
+    <button onclick="generateRenders()">Generate renders</button>
+  </div>
+  <div id="renderError" class="error"></div>
+  <div id="renderList"></div>
+</fieldset>
+
+<script src="app.js"></script>
+</body>
+</html>

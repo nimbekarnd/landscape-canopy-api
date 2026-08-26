@@ -27,6 +27,13 @@ Requires Python 3.11+.
 The API listens on http://127.0.0.1:8000 by default on all three
 platforms. Interactive docs are at http://127.0.0.1:8000/docs.
 
+A minimal test harness UI (plain HTML/JS, served by the API itself — no
+build step) is at http://127.0.0.1:8000/ui/. It lets you create a client,
+add species, upload a yard photo, draw zones on the photo, and trigger
+renders — enough to exercise the whole API by hand. It is not the
+designer-facing product UX described in the design spec, just a thin
+tool for manual testing.
+
 Data (SQLite file, uploaded photos, generated renders, cached reference
 images) is stored under `./data` relative to the working directory,
 controlled by the `LANDSCAPE_DATA_DIR` environment variable.
