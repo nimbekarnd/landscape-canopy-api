@@ -32,17 +32,25 @@ class HttpImageEditClient:
         self._api_key = api_key
         self._http_client = http_client or httpx.Client(timeout=60.0)
 
+    def close(self) -> None:
+        self._http_client.close()
+
     def generate(self, request: GenerationRequest) -> GenerationResult:
-        files = {
-            "base_photo": request.base_photo_path.read_bytes(),
-            "mask_overlay": request.mask_overlay_path.read_bytes(),
-        }
+        # A list of tuples (rather than a dict) so the repeated
+        # "reference_images" multipart field can carry every reference image.
+        files_list = [
+            ("base_photo", request.base_photo_path.read_bytes()),
+            ("mask_overlay", request.mask_overlay_path.read_bytes()),
+        ] + [
+            ("reference_images", path.read_bytes())
+            for path in request.reference_image_paths
+        ]
         data = {"prompt": request.prompt}
         headers = {"Authorization": f"Bearer {self._api_key}"}
 
         try:
             response = self._http_client.post(
-                self._api_url, data=data, files=files, headers=headers
+                self._api_url, data=data, files=files_list, headers=headers
             )
         except httpx.HTTPError as exc:
             raise ImageEditError(f"Transport error calling image-edit API: {exc}") from exc
