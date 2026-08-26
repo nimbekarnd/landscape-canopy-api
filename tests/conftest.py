@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from landscape_api.main import app
-from landscape_api.db import Base, get_db
+from landscape_api.db import Base, enable_sqlite_foreign_keys, get_db
 
 
 def make_test_jpeg_bytes() -> bytes:
@@ -28,6 +28,7 @@ def db_session():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    enable_sqlite_foreign_keys(engine)
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     session = TestSession()

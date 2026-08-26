@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from landscape_api.db import get_db
-from landscape_api.models import Project, Zone, PaletteEntry
+from landscape_api.models import Project, Species, Zone, PaletteEntry
 from landscape_api.schemas import ZoneIn, ZoneOut
 from landscape_api.validation import validate_palette_entries, ZoneValidationError
 
@@ -14,6 +14,22 @@ def create_zone(project_id: str, payload: ZoneIn, db: Session = Depends(get_db))
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    requested_ids = [e.species_id for e in payload.palette_entries]
+    if requested_ids:
+        known_ids = {
+            row_id
+            for (row_id,) in db.query(Species.id).filter(Species.id.in_(requested_ids))
+        }
+        missing_ids = [
+            species_id for species_id in dict.fromkeys(requested_ids)
+            if species_id not in known_ids
+        ]
+        if missing_ids:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unknown species id(s): {', '.join(missing_ids)}",
+            )
 
     try:
         validate_palette_entries(

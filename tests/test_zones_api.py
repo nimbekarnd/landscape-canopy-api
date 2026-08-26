@@ -1,10 +1,12 @@
 import io
 
+from conftest import make_test_jpeg_bytes
+
 
 def _make_project(client):
     client_resp = client.post("/clients", json={"name": "Agriformers Pilot"})
     client_id = client_resp.json()["id"]
-    photo = io.BytesIO(b"fake-jpeg-bytes")
+    photo = io.BytesIO(make_test_jpeg_bytes())
     project_resp = client.post(
         f"/clients/{client_id}/projects",
         files={"photo": ("yard.jpg", photo, "image/jpeg")},
@@ -61,3 +63,40 @@ def test_list_zones_for_project(client):
     resp = client.get(f"/projects/{project_id}/zones")
     assert resp.status_code == 200
     assert len(resp.json()) == 1
+
+
+def test_create_zone_with_unknown_species_id_returns_422(client):
+    """C3: an orphaned palette entry must be rejected up front, not persisted."""
+    project_id = _make_project(client)
+
+    resp = client.post(
+        f"/projects/{project_id}/zones",
+        json={
+            "kind": "region",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [
+                {"species_id": "does-not-exist", "proportion": 100.0}
+            ],
+        },
+    )
+    assert resp.status_code == 422
+    assert "does-not-exist" in resp.json()["detail"]
+
+    # And nothing was written.
+    assert client.get(f"/projects/{project_id}/zones").json() == []
+
+
+def test_create_zone_with_invalid_kind_returns_422(client):
+    """I5: kind is constrained to the values build_mask_overlay understands."""
+    project_id = _make_project(client)
+    species_id = client.post("/species", json={"common_name": "Red Maple"}).json()["id"]
+
+    resp = client.post(
+        f"/projects/{project_id}/zones",
+        json={
+            "kind": "blob",
+            "geometry": {"points": [[0, 0], [1, 1]]},
+            "palette_entries": [{"species_id": species_id, "proportion": 100.0}],
+        },
+    )
+    assert resp.status_code == 422
