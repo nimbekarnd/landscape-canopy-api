@@ -13,12 +13,20 @@ Requires Python 3.11+.
     python3 -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
+    pip install -e .
 
 ### Windows (PowerShell)
 
     py -3 -m venv .venv
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
+    pip install -e .
+
+The `pip install -e .` step installs this project itself (in editable
+mode) so `landscape_api` is importable from anywhere — without it,
+`uvicorn landscape_api.main:app` fails with `ModuleNotFoundError: No
+module named 'landscape_api'` even though the dependencies installed
+fine.
 
 ## Running the API
 
